@@ -17,7 +17,7 @@ from os import makedirs
 from sox import Transformer
 from itertools import cycle
 from os.path import getsize
-from threading import Thread
+from threading import Thread, currentThread
 from Queue import PriorityQueue
 from util.stm import parse_stm_file
 from util.gpu import get_available_gpus
@@ -75,6 +75,7 @@ class DataSet(object):
         for batch_thread in batch_threads:
             batch_thread.daemon = True
             batch_thread.start()
+        return batch_threads
 
     def _create_files_circular_list(self):
         priorityQueue = PriorityQueue()
@@ -91,7 +92,10 @@ class DataSet(object):
         return cycle(files_list)
 
     def _populate_batch_queue(self, session):
+        t = currentThread()
         for txt_file, wav_file in self._files_circular_list:
+            if not getattr(t, "do_run", True):
+                break;
             source = audiofile_to_input_vector(wav_file, self._numcep, self._numcontext)
             source_len = len(source)
             with codecs.open(txt_file, encoding="utf-8") as open_txt_file:
