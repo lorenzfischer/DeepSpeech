@@ -2,20 +2,18 @@
 
 set -xe
 
-ds_dataset_path="/data/LIUM/"
-export ds_dataset_path
+export ds_importer="ted"
 
-ds_importer="ted"
-export ds_importer
+export ds_train_batch_size=16
+export ds_dev_batch_size=8
+export ds_test_batch_size=8
 
-ds_batch_size=32
-export ds_batch_size
+export ds_learning_rate=0.0001
+export ds_validation_step=20
 
-ds_training_iters=15
-export ds_training_iters
-
-ds_validation_step=15
-export ds_validation_step
+export ds_epochs=150
+export ds_display_step=10
+export ds_checkpoint_step=1
 
 if [ ! -f DeepSpeech.ipynb ]; then
     echo "Please make sure you run this from DeepSpeech's top level directory."

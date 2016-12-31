@@ -75,6 +75,7 @@ class DataSet(object):
         for batch_thread in batch_threads:
             batch_thread.daemon = True
             batch_thread.start()
+        return batch_threads
 
     def _create_files_circular_list(self):
         priorityQueue = PriorityQueue()
@@ -98,11 +99,14 @@ class DataSet(object):
                 target = unicodedata.normalize("NFKD", open_txt_file.read()).encode("ascii", "ignore")
                 target = text_to_char_array(target)
             target_len = len(target)
-            session.run(self._enqueue_op, feed_dict={
-                self._x: source,
-                self._x_length: source_len,
-                self._y: target,
-                self._y_length: target_len})
+            try:
+                session.run(self._enqueue_op, feed_dict={
+                    self._x: source,
+                    self._x_length: source_len,
+                    self._y: target,
+                    self._y_length: target_len})
+            except (RuntimeError, tf.errors.CancelledError):
+                return
 
     def next_batch(self):
         source, source_lengths, target, target_lengths = self._example_queue.dequeue_many(self._batch_size)
@@ -115,7 +119,7 @@ class DataSet(object):
         return int(ceil(float(len(self._txt_files)) /float(self._batch_size)))
 
 
-def read_data_sets(data_dir, batch_size, numcep, numcontext, thread_count=8, limit_dev=0, limit_test=0, limit_train=0):
+def read_data_sets(data_dir, train_batch_size, dev_batch_size, test_batch_size, numcep, numcontext, thread_count=8, limit_dev=0, limit_test=0, limit_train=0):
     # Conditionally download data
     TED_DATA = "TEDLIUM_release2.tar.gz"
     TED_DATA_URL = "http://www.openslr.org/resources/19/TEDLIUM_release2.tar.gz"
@@ -135,13 +139,13 @@ def read_data_sets(data_dir, batch_size, numcep, numcontext, thread_count=8, lim
     _maybe_split_stm(data_dir, TED_DIR)
 
     # Create dev DataSet
-    dev = _read_data_set(data_dir, TED_DIR, "dev", thread_count, batch_size, numcep, numcontext, limit=limit_dev)
+    dev = _read_data_set(data_dir, TED_DIR, "dev", thread_count, dev_batch_size, numcep, numcontext, limit=limit_dev)
 
     # Create test DataSet
-    test = _read_data_set(data_dir, TED_DIR, "test", thread_count, batch_size, numcep, numcontext, limit=limit_test)
+    test = _read_data_set(data_dir, TED_DIR, "test", thread_count, test_batch_size, numcep, numcontext, limit=limit_test)
 
     # Create train DataSet
-    train = _read_data_set(data_dir, TED_DIR, "train", thread_count, batch_size, numcep, numcontext, limit=limit_train)
+    train = _read_data_set(data_dir, TED_DIR, "train", thread_count, train_batch_size, numcep, numcontext, limit=limit_train)
 
     # Return DataSets
     return DataSets(train, dev, test)
